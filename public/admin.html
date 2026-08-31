@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hakuba Bot · 後台</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #1a1f29;
+    --panel-2: #232a36;
+    --text: #e7ecf3;
+    --muted: #8a94a6;
+    --border: #2a3140;
+    --accent: #c9a96e;
+    --accent-2: #0a84ff;
+    --danger: #ff453a;
+    --success: #30d158;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang TC", "Hiragino Sans", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    padding: 14px 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  header h1 .accent { color: var(--accent); }
+  header nav {
+    display: flex;
+    gap: 4px;
+  }
+  header nav button {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  header nav button.active {
+    color: var(--bg);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  header nav button:hover:not(.active) { color: var(--text); }
+
+  main {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* List pane */
+  .list-pane {
+    width: 360px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+  }
+  .search-bar {
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  .search-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .matched-info {
+    font-size: 10px;
+    color: var(--accent);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .snippet {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-style: italic;
+    line-height: 1.4;
+  }
+  mark {
+    background: var(--accent);
+    color: var(--bg);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+  .list-item {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .list-item:hover { background: var(--panel-2); }
+  .list-item.active { background: var(--panel-2); border-left: 3px solid var(--accent); padding-left: 15px; }
+  .list-item .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .list-item .channel {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .channel.web { background: #1f2937; color: #93c5fd; }
+  .channel.whatsapp { background: #064e3b; color: #6ee7b7; }
+  .channel.line { background: #064e3b; color: #4ade80; }
+  .list-item .time {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .list-item .id {
+    font-size: 13px;
+    color: var(--text);
+    font-family: ui-monospace, monospace;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .list-item .preview {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Detail pane */
+  .detail-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .detail-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .reply-bar {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .reply-bar-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .reply-input {
+    width: 100%;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    resize: none;
+    outline: none;
+    min-height: 52px;
+    max-height: 100px;
+  }
+  .reply-input:focus { border-color: var(--accent); }
+  .reply-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 6px; }
+  .send-status { font-size: 11px; margin-top: 4px; min-height: 14px; }
+  .esc-reply { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .takeover-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #78350f; color: #fcd34d; margin-left: 8px; vertical-align: middle; }
+  .btn.takeover { background: #78350f; color: #fcd34d; border-color: #78350f; }
+  .btn.takeover:hover { opacity: 0.85; }
+  .empty {
+    color: var(--muted);
+    text-align: center;
+    padding: 80px 20px;
+    font-size: 14px;
+  }
+  /* Session bar — fixed above messages, never scrolls */
+  .session-bar {
+    flex-shrink: 0;
+    padding: 12px 24px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .session-bar h2 {
+    font-size: 14px;
+    font-family: ui-monospace, monospace;
+    color: var(--text);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .session-bar .meta {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .msg-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+    max-width: 75%;
+  }
+  .msg-row.user { align-self: flex-end; align-items: flex-end; margin-left: auto; }
+  .msg-row.assistant { align-self: flex-start; }
+  .msg-bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    line-height: 1.5;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .msg-row.user .msg-bubble {
+    background: var(--accent-2);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  .msg-row.assistant .msg-bubble {
+    background: var(--panel-2);
+    border-bottom-left-radius: 4px;
+  }
+  .msg-meta {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+    padding: 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .msg-meta .toggle-detail {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: inherit;
+  }
+  .msg-meta .toggle-detail:hover { color: var(--accent); border-color: var(--accent); }
+
+  .msg-detail {
+    margin-top: 6px;
+    padding: 10px 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 11px;
+    color: var(--text);
+    display: none;
+    max-width: 480px;
+  }
+  .msg-detail.open { display: block; }
+  .msg-detail .row {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 6px;
+    padding: 3px 0;
+  }
+  .msg-detail .row .key { color: var(--muted); }
+  .msg-detail .row .val { font-family: ui-monospace, monospace; }
+  .msg-detail .badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: inherit;
+  }
+  .msg-detail .badge.good { background: #064e3b; color: #6ee7b7; }
+  .msg-detail .badge.warn { background: #78350f; color: #fcd34d; }
+  .msg-detail .badge.bad  { background: #7f1d1d; color: #fca5a5; }
+  .msg-detail .badge.info { background: #1e3a8a; color: #93c5fd; }
+  .msg-detail .badge.gold { background: #78350f; color: var(--accent); }
+  .messages-container {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Stats panel */
+  .stats {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .stat-card .label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-card .value {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* Escalation pane */
+  .esc-item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .esc-item .esc-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .esc-item .esc-msg {
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 14px;
+    margin: 8px 0;
+  }
+  .esc-item .esc-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .btn {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn.danger { color: var(--danger); }
+
+  /* 轉接通知徽章 */
+  .tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    padding: 0 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+    animation: badge-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes badge-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.92); }
+  }
+
+  /* FAQ 管理 */
+  .faq-row {
+    display: grid;
+    grid-template-columns: 76px 72px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .faq-row:hover { background: var(--panel-2); }
+  .faq-row.inactive { opacity: 0.42; }
+  .faq-id { font-family: ui-monospace,monospace; font-size: 11px; color: var(--muted); }
+  .faq-cat { font-size: 11px; color: var(--accent); font-weight: 600; }
+  .faq-q { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .faq-acts { display: flex; gap: 5px; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.76); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 28px; width: 720px; max-width: 96vw; max-height: 92vh; overflow-y: auto; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: .4px; }
+  .form-input, .form-textarea { width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-family: inherit; font-size: 13px; outline: none; }
+  .form-input:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-textarea { resize: vertical; min-height: 68px; line-height: 1.5; }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .lang-section { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px; }
+  .lang-section h4 { font-size: 11px; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+
+  /* Mobile back button — hidden on desktop */
+  .mb-back { display: none; }
+
+  /* Logout button (desktop) */
+  .logout-btn {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .logout-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+  /* Hamburger button — hidden on desktop */
+  .hamburger-btn {
+    display: none;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 11px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    font-family: inherit;
+  }
+
+  /* Logout item inside nav dropdown — hidden on desktop */
+  .nav-logout-mobile { display: none; }
+
+  /* ── Mobile ≤ 768px ── */
+  @media (max-width: 768px) {
+    body { overflow: auto; }
+    header { padding: 10px 14px; position: relative; }
+    header h1 { font-size: 14px; }
+    /* Desktop nav hidden; desktop logout hidden */
+    header nav { display: none; }
+    .logout-btn { display: none; }
+    /* Hamburger shown */
+    .hamburger-btn { display: inline-flex; align-items: center; }
+    /* Dropdown nav opens below header */
+    header.nav-open nav {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--panel);
+      border-bottom: 2px solid var(--border);
+      box-shadow: 0 8px 24px rgba(0,0,0,.5);
+      z-index: 100;
+      padding: 8px;
+      gap: 4px;
+    }
+    header.nav-open nav button {
+      width: 100%;
+      text-align: left;
+      font-size: 14px;
+      padding: 11px 16px;
+      white-space: normal;
+      flex-shrink: unset;
+    }
+    /* Logout item inside dropdown */
+    .nav-logout-mobile {
+      display: block;
+      margin-top: 4px;
+      border-top: 1px solid var(--border) !important;
+      padding-top: 15px !important;
+      color: var(--danger) !important;
+    }
+    /* Main layout */
+    main { flex-direction: column; overflow-y: auto !important; overflow-x: hidden !important; }
+    /* List pane: full width, fills viewport height */
+    .list-pane {
+      width: 100% !important;
+      border-right: none;
+      height: calc(100svh - 56px);
+      overflow-y: auto;
+    }
+    /* Detail pane: default visible & scrollable (非對話分頁用) */
+    .detail-pane { width: 100% !important; min-height: calc(100svh - 56px); }
+    /* 對話分頁：list-only 模式隱藏 detail；mb-detail 模式反轉 */
+    main.tab-conversations .detail-pane { display: none; }
+    main.tab-conversations.mb-detail .list-pane { display: none !important; }
+    main.tab-conversations.mb-detail .detail-pane {
+      display: flex !important;
+      flex-direction: column;
+      height: calc(100svh - 56px);
+      min-height: unset;
+      overflow: hidden;
+    }
+    /* Session bar on mobile */
+    .session-bar { padding: 10px 14px 12px; }
+    .session-bar .meta { gap: 10px; font-size: 11px; }
+    .mb-back { display: inline-flex !important; }
+    .search-input, .reply-input, .form-input, .form-textarea { font-size: 16px !important; }
+    /* Escalations pane */
+    #esc { padding: 16px; overflow-y: auto; }
+    /* Pickups header stacks on narrow screens */
+    #pickup-pane { padding: 16px !important; }
+    #pickup-pane > div:first-child { flex-wrap: wrap; gap: 8px; }
+    #pickup-list { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #pickup-list table { min-width: 620px; }
+    /* FAQ header stacks on narrow screens */
+    #faq-pane { padding: 16px !important; }
+    #faq-pane > div:first-child { flex-wrap: wrap; gap: 8px; }
+    .faq-row { grid-template-columns: 60px 56px 1fr; gap: 8px; font-size: 12px; padding: 8px 10px; }
+    .faq-acts { flex-wrap: wrap; gap: 4px; }
+    .stats { grid-template-columns: 1fr 1fr; padding: 16px; gap: 10px; }
+    .stat-card { padding: 14px; }
+    .stat-card .value { font-size: 24px; }
+    .detail-scroll { padding: 14px; flex: 1; overflow-y: auto; }
+    .reply-bar { padding: 10px 12px; }
+    .modal-overlay { align-items: flex-end; }
+    .modal-box { width: 100% !important; max-width: 100% !important; border-radius: 16px 16px 0 0; padding: 20px 16px; }
+    .form-row-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <header id="header">
+    <h1>The 1/3rd <span class="accent">HAKUBA</span> · Admin</h1>
+    <nav>
+      <button data-tab="conversations" class="active">對話 (Conversations)</button>
+      <button data-tab="escalations">人工轉接 (Escalations)<span id="esc-badge" class="tab-badge" style="display:none">0</span></button>
+      <button data-tab="stats">統計 (Stats)</button>
+      <button data-tab="pickups">接送預約 (Pickups)</button>
+      <button data-tab="knowledge">知識庫 (FAQ)</button>
+      <button class="nav-logout-mobile" onclick="logout()">🚪 登出</button>
+    </nav>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="logout-btn" onclick="logout()">登出</button>
+      <button class="hamburger-btn" id="hamburger-btn">☰</button>
+    </div>
+  </header>
+
+  <main id="main"></main>
+
+<script>
+const main = document.getElementById("main");
+const tabs = document.querySelectorAll("nav button");
+
+let currentTab = "conversations";
+let activeSessionId = null;
+
+tabs.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    tabs.forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentTab = btn.dataset.tab;
+    document.getElementById("header").classList.remove("nav-open");
+    render();
+  });
+});
+
+// ── 漢堡選單 ──────────────────────────────────────────
+document.getElementById("hamburger-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  document.getElementById("header").classList.toggle("nav-open");
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#header")) {
+    document.getElementById("header").classList.remove("nav-open");
+  }
+});
+
+// ── 登出 ──────────────────────────────────────────────
+function logout() {
+  if (!confirm("確定要登出後台嗎？")) return;
+  window.location.href = "/api/admin/logout";
+}
+window.logout = logout;
+
+function fmtTime(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("zh-TW", { hour12: false });
+}
+
+function fmtChannel(ch) {
+  return `<span class="channel ${ch}">${ch}</span>`;
+}
+
+async function api(path) {
+  const res = await fetch(path);
+  return res.json();
+}
+
+let searchTimer = null;
+let searchQuery = "";
+
+async function renderConversations() {
+  main.classList.remove("mb-detail");
+  main.classList.add("tab-conversations");
+  main.innerHTML = `
+    <div class="list-pane">
+      <div class="search-bar">
+        <input id="search-input" class="search-input" placeholder="🔍 搜訊息或客人 ID...">
+      </div>
+      <div id="list-items">載入中...</div>
+    </div>
+    <div class="detail-pane" id="detail">
+      <div class="empty">← 點選左側對話查看訊息歷史</div>
+    </div>`;
+
+  const input = document.getElementById("search-input");
+  input.value = searchQuery;
+  input.addEventListener("input", onSearchInput);
+
+  if (searchQuery) await runSearch();
+  else await renderConversationList();
+}
+
+function onSearchInput(e) {
+  clearTimeout(searchTimer);
+  searchQuery = e.target.value.trim();
+  searchTimer = setTimeout(() => {
+    if (searchQuery) runSearch();
+    else renderConversationList();
+  }, 300);
+}
+
+async function renderConversationList() {
+  const list = document.getElementById("list-items");
+  list.innerHTML = "載入中...";
+  const data = await api("/api/admin/conversations");
+  if (data.count === 0) {
+    list.innerHTML = '<div class="empty">尚無對話</div>';
+    return;
+  }
+  list.innerHTML = data.conversations.map((c) => renderListItem(c, "")).join("");
+  attachItemHandlers();
+}
+
+async function runSearch() {
+  const list = document.getElementById("list-items");
+  list.innerHTML = '<div class="empty">搜尋中...</div>';
+  const data = await api(`/api/admin/search?q=${encodeURIComponent(searchQuery)}`);
+  if (data.count === 0) {
+    list.innerHTML = `<div class="empty">沒有找到「${escapeHtml(searchQuery)}」</div>`;
+    return;
+  }
+  list.innerHTML = data.results.map((r) => {
+    const n = r.matched_messages.length;
+    const tag = n > 0
+      ? `<div class="matched-info">${n} 則訊息匹配${r.matched_session_id ? " · ID 也匹配" : ""}</div>`
+      : `<div class="matched-info">客人 ID 匹配</div>`;
+    const snippet = r.matched_messages[0]
+      ? `<div class="snippet">「${highlightQuery(snippetText(r.matched_messages[0].content))}」</div>`
+      : "";
+    return renderListItem(r, tag + snippet);
+  }).join("");
+  attachItemHandlers();
+}
+
+function formatDisplayName(c) {
+  if (c.display_name) return escapeHtml(c.display_name);
+  if (c.channel === "web") {
+    const short = c.session_id.replace(/^web:/, "").slice(-6);
+    return "網站訪客 " + short;
+  }
+  if (c.channel === "line") return "LINE 用戶";
+  return c.session_id;
+}
+
+function renderListItem(c, extra) {
+  const nameHtml = highlightQuery(formatDisplayName(c));
+  const idHtml = `<span style="font-size:10px;color:var(--muted);font-family:ui-monospace,monospace;">${highlightQuery(c.session_id)}</span>`;
+  const count = c.message_count != null ? `${c.message_count} 則 · ` : "";
+  return `
+    <div class="list-item ${c.session_id === activeSessionId ? "active" : ""}" data-id="${c.session_id}">
+      <div class="top">
+        ${fmtChannel(c.channel)}
+        <span class="time">${fmtTime(c.last_active)}</span>
+      </div>
+      <div class="id">${nameHtml}${c.human_takeover ? '<span class="takeover-badge">接管中</span>' : ''}</div>
+      <div class="preview">${idHtml}</div>
+      <div class="preview" style="margin-top:2px">${count}始於 ${fmtTime(c.created_at)}</div>
+      ${extra}
+    </div>
+  `;
+}
+
+function attachItemHandlers() {
+  document.querySelectorAll(".list-item").forEach((item) => {
+    item.addEventListener("click", () => loadConversation(item.dataset.id));
+  });
+}
+
+function snippetText(text, max = 100) {
+  if (!text || text.length <= max) return text || "";
+  const lower = text.toLowerCase();
+  const q = searchQuery.toLowerCase();
+  const idx = lower.indexOf(q);
+  if (idx === -1) return text.slice(0, max) + "…";
+  const start = Math.max(0, idx - 20);
+  const end = Math.min(text.length, idx + q.length + 60);
+  return (start > 0 ? "…" : "") + text.slice(start, end) + (end < text.length ? "…" : "");
+}
+
+function highlightQuery(text) {
+  const escaped = escapeHtml(text);
+  if (!searchQuery) return escaped;
+  const escapedQuery = escapeHtml(searchQuery).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return escaped.replace(new RegExp(escapedQuery, "gi"), (m) => `<mark>${m}</mark>`);
+}
+
+async function loadConversation(sessionId) {
+  activeSessionId = sessionId;
+  document.querySelectorAll(".list-item").forEach((el) => {
+    el.classList.toggle("active", el.dataset.id === sessionId);
+  });
+
+  const detail = document.getElementById("detail");
+  detail.innerHTML = "<div class='empty'>載入訊息中...</div>";
+  const data = await api(`/api/admin/messages?sessionId=${encodeURIComponent(sessionId)}`);
+
+  let totalIn = 0, totalOut = 0;
+  data.messages.forEach((m) => {
+    totalIn += m.tokens_in || 0;
+    totalOut += m.tokens_out || 0;
+  });
+
+  // 從列表快取取 display_name（避免再打 API）
+  const activeItem = document.querySelector(`.list-item[data-id="${CSS.escape(sessionId)}"]`);
+  const displayNameEl = activeItem ? activeItem.querySelector(".id") : null;
+  const displayName = displayNameEl ? displayNameEl.textContent.replace("接管中", "").trim() : sessionId;
+  const isTakeover = activeItem?.querySelector(".takeover-badge") != null;
+
+  const channel = sessionId.split(":")[0];
+  const replyHint = channel === "line"
+    ? "LINE Push → 客人即時收到"
+    : channel === "whatsapp"
+    ? "WhatsApp（待開通）"
+    : "儲存記錄 · 客人下次開啟 widget 可見";
+
+  detail.innerHTML = `
+    <div class="session-bar">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden">
+          <button class="btn mb-back" id="mb-back-btn" style="flex-shrink:0;font-size:11px;padding:4px 10px">← 返回</button>
+          <h2>${escapeHtml(displayName)}${isTakeover ? '<span class="takeover-badge">接管中</span>' : ''}</h2>
+        </div>
+        <button id="takeover-btn" class="btn ${isTakeover ? 'takeover' : ''}" onclick="toggleTakeover()" style="flex-shrink:0">${isTakeover ? '🤖 交還 AI' : '🤝 開始接管'}</button>
+      </div>
+      <div class="meta">
+        <span style="font-family:ui-monospace,monospace;font-size:11px;">${escapeHtml(sessionId)}</span>
+        <span>${data.messages.length} 則訊息</span>
+        <span>Tokens: ${totalIn} in / ${totalOut} out</span>
+      </div>
+    </div>
+    <div class="detail-scroll" id="detail-scroll">
+      <div class="messages-container" id="msgs-container">
+        ${data.messages.map((m, i) => renderMessage(m, i)).join("")}
+      </div>
+    </div>
+    <div class="reply-bar">
+      <div class="reply-bar-label">以管家身分回覆 · ${replyHint}</div>
+      <div class="reply-row">
+        <textarea id="admin-reply-input" class="reply-input" rows="2" placeholder="輸入訊息後按 Enter 傳送..."></textarea>
+        <button class="btn primary" id="admin-reply-btn" onclick="sendAdminReply()">傳送</button>
+      </div>
+      <div class="send-status" id="admin-reply-status"></div>
+    </div>
+  `;
+
+  // Mobile：切換到詳情 mode，並掛上返回按鈕
+  if (window.innerWidth <= 768) main.classList.add("mb-detail");
+  const mbBackBtn = document.getElementById("mb-back-btn");
+  if (mbBackBtn) mbBackBtn.addEventListener("click", () => main.classList.remove("mb-detail"));
+
+  detail.querySelectorAll(".toggle-detail").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = document.getElementById(btn.dataset.target);
+      if (target) target.classList.toggle("open");
+      btn.textContent = target?.classList.contains("open") ? "▼ 詳情" : "▶ 詳情";
+    });
+  });
+
+  const replyInput = document.getElementById("admin-reply-input");
+  if (replyInput) {
+    replyInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAdminReply(); }
+    });
+  }
+
+  // 捲到最新訊息
+  const scroll = document.getElementById("detail-scroll");
+  if (scroll) scroll.scrollTop = scroll.scrollHeight;
+}
+
+function renderMessage(m, idx) {
+  const tokens = m.tokens_in ? ` · ${m.tokens_in}+${m.tokens_out} tokens` : "";
+  const meta = m.metadata && Object.keys(m.metadata).length > 0;
+  const detailId = `detail-${idx}`;
+  const toggleBtn = (m.role === "assistant" && meta)
+    ? `<button class="toggle-detail" data-target="${detailId}">▶ 詳情</button>`
+    : "";
+  const detailBox = (m.role === "assistant" && meta)
+    ? `<div class="msg-detail" id="${detailId}">${renderMetadata(m.metadata)}</div>`
+    : "";
+  return `
+    <div class="msg-row ${m.role}">
+      <div class="msg-bubble">${escapeHtml(m.content)}</div>
+      <div class="msg-meta">
+        <span>${fmtTime(m.created_at)}${tokens}</span>
+        ${toggleBtn}
+      </div>
+      ${detailBox}
+    </div>
+  `;
+}
+
+function renderMetadata(md) {
+  const rows = [];
+  const row = (key, val) => rows.push(`<div class="row"><div class="key">${key}</div><div class="val">${val}</div></div>`);
+
+  if (md.model) row("模型", `<span class="badge info">${md.model}</span>`);
+  if (md.latency_ms != null) {
+    const cls = md.latency_ms < 1500 ? "good" : md.latency_ms < 3500 ? "warn" : "bad";
+    row("回應延遲", `<span class="badge ${cls}">${md.latency_ms} ms</span>`);
+  }
+  if (md.lang_detected) row("偵測語言", `<span class="badge info">${md.lang_detected}</span>`);
+  if (md.faq_count != null) {
+    const ts = md.faq_loaded_at ? ` · ${fmtTime(md.faq_loaded_at)}` : "";
+    row("FAQ 版本", `${md.faq_count} 條 · ${md.faq_source || "—"}${ts}`);
+  }
+  if (md.history_messages != null) row("歷史脈絡", `帶入 ${md.history_messages} 則`);
+  const cacheCreate = md.cache_creation_input_tokens || 0;
+  const cacheRead = md.cache_read_input_tokens || 0;
+  if (cacheCreate > 0) {
+    row("Prompt cache", `<span class="badge gold">寫入 ${cacheCreate} tokens (建快取)</span>`);
+  } else if (cacheRead > 0) {
+    row("Prompt cache", `<span class="badge good">命中 ${cacheRead} tokens (省 ~90% 費用)</span>`);
+  } else {
+    row("Prompt cache", `<span class="badge warn">未命中</span>`);
+  }
+  if (md.escalated) row("狀態", `<span class="badge bad">觸發人工轉接</span>`);
+  if (md.stop_reason) row("結束原因", md.stop_reason);
+  return rows.join("");
+}
+
+async function renderEscalations() {
+  main.classList.remove("tab-conversations", "mb-detail");
+  main.innerHTML = '<div class="detail-pane" id="esc">載入中...</div>';
+  const data = await api("/api/admin/escalations");
+  const pane = document.getElementById("esc");
+
+  if (data.count === 0) {
+    pane.innerHTML = '<div class="empty">目前沒有未處理的轉接 ✨</div>';
+    return;
+  }
+
+  pane.innerHTML = data.escalations.map((e) => {
+    const replyHint = e.channel === "line"
+      ? "LINE Push 回覆"
+      : e.channel === "whatsapp" ? "WhatsApp 回覆"
+      : "存入記錄（客人下次開啟 widget 可見）";
+    return `
+    <div class="esc-item">
+      <div class="esc-top">
+        ${fmtChannel(e.channel)}
+        <span style="color: var(--muted); font-size: 12px;">${fmtTime(e.created_at)}</span>
+      </div>
+      <div class="id" style="font-family: ui-monospace; font-size: 12px; color: var(--muted);">${e.session_id}</div>
+      <div class="esc-msg">"${escapeHtml(e.trigger_message)}"</div>
+      <div class="esc-actions">
+        <button class="btn primary" onclick="document.querySelector('[data-tab=conversations]').click(); setTimeout(()=>loadConversation('${e.session_id}'),200)">查看對話</button>
+        <button class="btn" onclick="resolveEscalation(${e.id})">標記已處理</button>
+      </div>
+      <div class="esc-reply">
+        <div class="reply-bar-label">${replyHint}</div>
+        <div class="reply-row">
+          <textarea id="esc-reply-${e.id}" class="reply-input" rows="2" placeholder="輸入回覆..."></textarea>
+          <button class="btn primary" id="esc-send-${e.id}" onclick="sendEscReply('${e.session_id}',${e.id})">傳送</button>
+        </div>
+        <div class="send-status" id="esc-status-${e.id}"></div>
+      </div>
+    </div>
+  `;}).join("");
+}
+
+async function resolveEscalation(id) {
+  await fetch(`/api/admin/escalations/${id}/resolve`, { method: "POST" });
+  renderEscalations();
+}
+window.resolveEscalation = resolveEscalation;
+
+async function renderStats() {
+  main.classList.remove("tab-conversations", "mb-detail");
+  main.innerHTML = '<div class="stats" id="stats">載入中...</div>';
+  const [conv, esc, kb] = await Promise.all([
+    api("/api/admin/conversations"),
+    api("/api/admin/escalations"),
+    api("/api/knowledge/status"),
+  ]);
+
+  const byChannel = { web: 0, whatsapp: 0, line: 0 };
+  conv.conversations.forEach((c) => byChannel[c.channel] = (byChannel[c.channel] || 0) + 1);
+
+  document.getElementById("stats").innerHTML = `
+    <div class="stat-card"><div class="label">總對話數</div><div class="value">${conv.count}</div></div>
+    <div class="stat-card"><div class="label">WhatsApp</div><div class="value">${byChannel.whatsapp || 0}</div></div>
+    <div class="stat-card"><div class="label">LINE</div><div class="value">${byChannel.line || 0}</div></div>
+    <div class="stat-card"><div class="label">Web</div><div class="value">${byChannel.web || 0}</div></div>
+    <div class="stat-card"><div class="label">未處理轉接</div><div class="value" style="color: ${esc.count > 0 ? 'var(--danger)' : 'var(--success)'}">${esc.count}</div></div>
+    <div class="stat-card"><div class="label">FAQ 條目</div><div class="value">${kb.count}</div></div>
+  `;
+}
+
+let faqCache = [];
+
+async function renderKnowledge() {
+  main.classList.remove("tab-conversations", "mb-detail");
+  const kb = await api("/api/knowledge/status");
+  main.innerHTML = `
+    <div class="detail-pane" style="overflow-y:auto;padding:24px" id="faq-pane">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <div>
+          <span style="font-size:15px;font-weight:600">FAQ 知識庫</span>
+          <span id="faq-source-label" style="font-size:11px;color:var(--muted);margin-left:12px">來源: ${escapeHtml(kb.source || '—')} · ${kb.count} 條</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="reloadKnowledge()">🔄 立即套用</button>
+          <button class="btn primary" onclick="openFaqModal(null)">+ 新增 FAQ</button>
+        </div>
+      </div>
+      <div id="faq-list">載入中...</div>
+    </div>
+    <div id="faq-overlay" class="modal-overlay" onclick="closeFaqModal(event)">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <h3 id="modal-title" style="margin-bottom:18px;font-size:15px"></h3>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+  `;
+  await loadFaqList();
+}
+
+async function loadFaqList() {
+  const list = document.getElementById("faq-list");
+  if (!list) return;
+  try {
+    const data = await api("/api/admin/faqs");
+    faqCache = data.faqs || [];
+    renderFaqList();
+  } catch (e) {
+    if (list) list.innerHTML = '<div class="empty">載入失敗</div>';
+  }
+}
+
+function renderFaqList() {
+  const list = document.getElementById("faq-list");
+  if (!list) return;
+  if (faqCache.length === 0) {
+    list.innerHTML = '<div class="empty">尚無 FAQ，點右上方「+ 新增 FAQ」開始新增</div>';
+    return;
+  }
+  list.innerHTML = `
+    <div style="display:grid;grid-template-columns:76px 72px 1fr auto;gap:12px;padding:8px 16px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);">
+      <span>ID</span><span>分類</span><span>中文問題</span><span></span>
+    </div>
+    ${faqCache.map(f => `
+      <div class="faq-row ${f.active ? '' : 'inactive'}">
+        <span class="faq-id">${escapeHtml(f.id)}</span>
+        <span class="faq-cat">${escapeHtml(f.category || '—')}</span>
+        <span class="faq-q" title="${escapeHtml(f.question_zh || '')}">${escapeHtml(f.question_zh || '(空)')}</span>
+        <div class="faq-acts">
+          <button class="btn" style="font-size:11px;padding:4px 8px" onclick="toggleFaqActive('${escapeHtml(f.id)}',${!f.active})">${f.active ? '停用' : '啟用'}</button>
+          <button class="btn" style="font-size:11px;padding:4px 8px" onclick="openFaqModal('${escapeHtml(f.id)}')">編輯</button>
+          <button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="deleteFaqConfirm('${escapeHtml(f.id)}')">刪除</button>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function genNextFaqId() {
+  if (faqCache.length === 0) return 'FAQ-001';
+  const nums = faqCache.map(f => parseInt((f.id || '').replace(/\D/g, '')) || 0);
+  return 'FAQ-' + String(Math.max(...nums) + 1).padStart(3, '0');
+}
+
+function faqFormHtml(faq) {
+  const v = (k) => escapeHtml(faq?.[k] || '');
+  return `
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">ID</label>
+        <input class="form-input" id="f-id" value="${faq ? v('id') : escapeHtml(genNextFaqId())}" ${faq ? 'disabled' : ''} placeholder="FAQ-011">
+      </div>
+      <div class="form-group">
+        <label class="form-label">分類 Category</label>
+        <input class="form-input" id="f-cat" value="${v('category')}" placeholder="入住 / 房間 / 服務...">
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-group">
+        <label class="form-label">排序 Sort Order</label>
+        <input class="form-input" id="f-sort" type="number" value="${faq?.sort_order ?? 0}">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="f-active" ${(faq?.active !== false) ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent)">
+          啟用 (Active)
+        </label>
+      </div>
+    </div>
+    <div class="lang-section">
+      <h4>🇹🇼 繁體中文</h4>
+      <div class="form-group"><label class="form-label">問題</label><input class="form-input" id="f-qzh" value="${v('question_zh')}" placeholder="中文問題"></div>
+      <div class="form-group"><label class="form-label">答案</label><textarea class="form-textarea" id="f-azh" rows="3">${v('answer_zh')}</textarea></div>
+    </div>
+    <div class="lang-section">
+      <h4>🇬🇧 English</h4>
+      <div class="form-group"><label class="form-label">Question</label><input class="form-input" id="f-qen" value="${v('question_en')}" placeholder="English question"></div>
+      <div class="form-group"><label class="form-label">Answer</label><textarea class="form-textarea" id="f-aen" rows="3">${v('answer_en')}</textarea></div>
+    </div>
+    <div class="lang-section">
+      <h4>🇯🇵 日本語</h4>
+      <div class="form-group"><label class="form-label">質問</label><input class="form-input" id="f-qja" value="${v('question_ja')}" placeholder="日本語の質問"></div>
+      <div class="form-group"><label class="form-label">回答</label><textarea class="form-textarea" id="f-aja" rows="3">${v('answer_ja')}</textarea></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <button class="btn" onclick="closeFaqModal()">取消</button>
+      <button class="btn primary" id="faq-save-btn" onclick="saveFaq(${faq ? `'${escapeHtml(faq.id)}'` : 'null'})">儲存並套用</button>
+    </div>
+  `;
+}
+
+function openFaqModal(id) {
+  const overlay = document.getElementById("faq-overlay");
+  if (!overlay) return;
+  const faq = id ? faqCache.find(f => f.id === id) : null;
+  document.getElementById("modal-title").textContent = faq ? `編輯 ${faq.id}` : '新增 FAQ';
+  document.getElementById("modal-body").innerHTML = faqFormHtml(faq);
+  overlay.classList.add("open");
+}
+window.openFaqModal = openFaqModal;
+
+function closeFaqModal(e) {
+  if (e && e.target !== document.getElementById("faq-overlay")) return;
+  document.getElementById("faq-overlay")?.classList.remove("open");
+}
+window.closeFaqModal = closeFaqModal;
+
+async function saveFaq(originalId) {
+  const id = document.getElementById("f-id")?.value.trim();
+  if (!id) { alert("ID 不能空白"); return; }
+  const btn = document.getElementById("faq-save-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "儲存中..."; }
+  const faq = {
+    id,
+    category: document.getElementById("f-cat")?.value.trim() || '一般',
+    sort_order: parseInt(document.getElementById("f-sort")?.value) || 0,
+    active: document.getElementById("f-active")?.checked ?? true,
+    question_zh: document.getElementById("f-qzh")?.value.trim() || '',
+    answer_zh: document.getElementById("f-azh")?.value.trim() || '',
+    question_en: document.getElementById("f-qen")?.value.trim() || '',
+    answer_en: document.getElementById("f-aen")?.value.trim() || '',
+    question_ja: document.getElementById("f-qja")?.value.trim() || '',
+    answer_ja: document.getElementById("f-aja")?.value.trim() || '',
+  };
+  try {
+    const res = await fetch("/api/admin/faqs", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(faq),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "儲存失敗");
+    await fetch("/api/knowledge/refresh", { method: "POST" });
+    document.getElementById("faq-overlay")?.classList.remove("open");
+    await loadFaqList();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = "儲存並套用"; }
+    alert("❌ " + e.message);
+  }
+}
+window.saveFaq = saveFaq;
+
+async function toggleFaqActive(id, active) {
+  const faq = faqCache.find(f => f.id === id);
+  if (!faq) return;
+  try {
+    const res = await fetch("/api/admin/faqs", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...faq, active }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    await fetch("/api/knowledge/refresh", { method: "POST" });
+    await loadFaqList();
+  } catch (e) { alert("❌ " + e.message); }
+}
+window.toggleFaqActive = toggleFaqActive;
+
+async function deleteFaqConfirm(id) {
+  if (!confirm(`確定刪除 ${id}？此操作無法還原。`)) return;
+  try {
+    const res = await fetch(`/api/admin/faqs/${encodeURIComponent(id)}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    await fetch("/api/knowledge/refresh", { method: "POST" });
+    await loadFaqList();
+  } catch (e) { alert("❌ " + e.message); }
+}
+window.deleteFaqConfirm = deleteFaqConfirm;
+
+async function reloadKnowledge() {
+  const res = await fetch("/api/knowledge/refresh", { method: "POST" });
+  const data = await res.json();
+  alert(data.ok ? `✅ 已重載 ${data.count} 筆 FAQ（來源：${data.source}）` : `❌ ${data.error}`);
+  if (currentTab === "knowledge") renderKnowledge();
+}
+window.reloadKnowledge = reloadKnowledge;
+
+async function toggleTakeover() {
+  if (!activeSessionId) return;
+  const btn = document.getElementById("takeover-btn");
+  const currentlyTakeover = btn.classList.contains("takeover");
+  const enabled = !currentlyTakeover;
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/admin/takeover", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: activeSessionId, enabled }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      btn.textContent = enabled ? "🤖 交還 AI" : "🤝 開始接管";
+      btn.classList.toggle("takeover", enabled);
+      // 更新列表中的徽章
+      const listItem = document.querySelector(`.list-item[data-id="${CSS.escape(activeSessionId)}"] .id`);
+      if (listItem) {
+        const existing = listItem.querySelector(".takeover-badge");
+        if (enabled && !existing) {
+          const badge = document.createElement("span");
+          badge.className = "takeover-badge";
+          badge.textContent = "接管中";
+          listItem.appendChild(badge);
+        } else if (!enabled && existing) {
+          existing.remove();
+        }
+      }
+      // 更新 detail header 的徽章
+      const h2Badge = document.querySelector(".session-bar h2 .takeover-badge");
+      if (enabled && !h2Badge) {
+        const b = document.createElement("span");
+        b.className = "takeover-badge";
+        b.textContent = "接管中";
+        document.querySelector(".session-bar h2").appendChild(b);
+      } else if (!enabled && h2Badge) {
+        h2Badge.remove();
+      }
+    }
+  } catch(e) {}
+  btn.disabled = false;
+}
+window.toggleTakeover = toggleTakeover;
+
+async function sendAdminReply() {
+  const input = document.getElementById("admin-reply-input");
+  const btn = document.getElementById("admin-reply-btn");
+  const status = document.getElementById("admin-reply-status");
+  const message = input.value.trim();
+  if (!message || !activeSessionId) return;
+  btn.disabled = true;
+  btn.textContent = "傳送中...";
+  status.textContent = "";
+  try {
+    const res = await fetch("/api/admin/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: activeSessionId, message }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      input.value = "";
+      status.style.color = "var(--success)";
+      status.textContent = "✓ 已傳送";
+      // 管家回覆後自動開啟接管模式
+      const takeoverBtn = document.getElementById("takeover-btn");
+      if (takeoverBtn && !takeoverBtn.classList.contains("takeover")) {
+        fetch("/api/admin/takeover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: activeSessionId, enabled: true }),
+        }).then(() => {
+          takeoverBtn.textContent = "🤖 交還 AI";
+          takeoverBtn.classList.add("takeover");
+        }).catch(() => {});
+      }
+      // 即時把回覆加入對話視窗
+      const container = document.getElementById("msgs-container");
+      if (container) {
+        const div = document.createElement("div");
+        div.className = "msg-row assistant";
+        div.innerHTML = `<div class="msg-bubble">${escapeHtml(message)}</div><div class="msg-meta"><span>剛才 · 管家回覆</span></div>`;
+        container.appendChild(div);
+        const scroll = document.getElementById("detail-scroll");
+        if (scroll) scroll.scrollTop = scroll.scrollHeight;
+      }
+    } else {
+      status.style.color = "var(--danger)";
+      status.textContent = "✗ " + (data.error || "傳送失敗");
+    }
+  } catch {
+    status.style.color = "var(--danger)";
+    status.textContent = "✗ 網路錯誤";
+  }
+  btn.textContent = "傳送";
+  btn.disabled = false;
+}
+window.sendAdminReply = sendAdminReply;
+
+async function sendEscReply(sessionId, escId) {
+  const input = document.getElementById("esc-reply-" + escId);
+  const btn = document.getElementById("esc-send-" + escId);
+  const status = document.getElementById("esc-status-" + escId);
+  const message = input.value.trim();
+  if (!message) return;
+  btn.disabled = true;
+  btn.textContent = "傳送中...";
+  status.textContent = "";
+  try {
+    const res = await fetch("/api/admin/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, message }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      input.value = "";
+      status.style.color = "var(--success)";
+      status.textContent = "✓ 已傳送";
+    } else {
+      status.style.color = "var(--danger)";
+      status.textContent = "✗ " + (data.error || "傳送失敗");
+    }
+  } catch {
+    status.style.color = "var(--danger)";
+    status.textContent = "✗ 網路錯誤";
+  }
+  btn.textContent = "傳送";
+  btn.disabled = false;
+}
+window.sendEscReply = sendEscReply;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+
+// ===== 接送預約分頁 =====
+
+const PICKUP_STATUS_MAP = {
+  pending:   { label: "待確認", color: "var(--accent)" },
+  confirmed: { label: "已確認", color: "var(--accent-2)" },
+  completed: { label: "已完成", color: "var(--success)" },
+  cancelled: { label: "已取消", color: "var(--muted)" },
+};
+
+async function renderPickups() {
+  main.classList.remove("tab-conversations", "mb-detail");
+  main.innerHTML = `
+    <div class="detail-pane" style="overflow-y:auto;padding:24px" id="pickup-pane">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <span style="font-size:15px;font-weight:600">接送預約</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <label style="font-size:12px;color:var(--muted)">篩選日期</label>
+          <input type="date" id="pickup-date-filter" style="background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit;outline:none">
+          <button class="btn" onclick="loadPickupList()">全部顯示</button>
+        </div>
+      </div>
+      <div id="pickup-list">載入中...</div>
+    </div>`;
+  document.getElementById("pickup-date-filter").addEventListener("change", (e) => loadPickupList(e.target.value));
+  await loadPickupList();
+}
+
+async function loadPickupList(dateFilter) {
+  const list = document.getElementById("pickup-list");
+  if (!list) return;
+  const url = dateFilter ? `/api/admin/pickups?date=${encodeURIComponent(dateFilter)}` : "/api/admin/pickups";
+  const data = await api(url);
+  const bookings = data.bookings || [];
+  if (!dateFilter) {
+    const df = document.getElementById("pickup-date-filter");
+    if (df) df.value = "";
+  }
+  if (bookings.length === 0) {
+    list.innerHTML = '<div class="empty">暫無接送預約</div>';
+    return;
+  }
+  list.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="color:var(--muted);font-size:11px;text-align:left">
+          <th style="padding:8px 12px;border-bottom:1px solid var(--border)">日期</th>
+          <th style="padding:8px 12px;border-bottom:1px solid var(--border)">時間</th>
+          <th style="padding:8px 12px;border-bottom:1px solid var(--border)">地點</th>
+          <th style="padding:8px 12px;border-bottom:1px solid var(--border)">人數</th>
+          <th style="padding:8px 12px;border-bottom:1px solid var(--border)">姓名</th>
+          <th style="padding:8px 12px;border-bottom:1px solid var(--border)">電話</th>
+          <th style="padding:8px 12px;border-bottom:1px solid var(--border)">渠道</th>
+          <th style="padding:8px 12px;border-bottom:1px solid var(--border)">狀態</th>
+          <th style="padding:8px 12px;border-bottom:1px solid var(--border)">操作</th>
+        </tr>
+      </thead>
+      <tbody>${bookings.map(pickupRow).join("")}</tbody>
+    </table>`;
+}
+
+function pickupRow(b) {
+  const s = PICKUP_STATUS_MAP[b.status] || PICKUP_STATUS_MAP.pending;
+  const timeDisplay = b.slot_time || b.time_str || "—";
+  const dateDisplay = b.slot_date || b.date_str || "—";
+  const id = b.id;
+  return `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 12px">${escapeHtml(dateDisplay)}</td>
+      <td style="padding:10px 12px;font-weight:600">${escapeHtml(timeDisplay)}</td>
+      <td style="padding:10px 12px">${escapeHtml(b.location || "—")}</td>
+      <td style="padding:10px 12px;text-align:center">${escapeHtml(String(b.guests || "—"))}</td>
+      <td style="padding:10px 12px">${escapeHtml(b.name || "—")}</td>
+      <td style="padding:10px 12px">${escapeHtml(b.phone || "—")}</td>
+      <td style="padding:10px 12px">${fmtChannel(b.channel)}</td>
+      <td style="padding:10px 12px"><span style="color:${s.color};font-size:12px;font-weight:600">${s.label}</span></td>
+      <td style="padding:10px 12px">
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          ${b.status === "pending" ? `<button class="btn" style="font-size:11px;padding:3px 8px" onclick="setPickupStatus(${id},'confirmed')">確認</button>` : ""}
+          ${b.status !== "completed" && b.status !== "cancelled" ? `<button class="btn" style="font-size:11px;padding:3px 8px;color:var(--success);border-color:var(--success)" onclick="setPickupStatus(${id},'completed')">完成</button>` : ""}
+          ${b.status !== "cancelled" ? `<button class="btn danger" style="font-size:11px;padding:3px 8px" onclick="setPickupStatus(${id},'cancelled')">取消</button>` : ""}
+          <button class="btn danger" style="font-size:11px;padding:3px 8px;opacity:.7" onclick="deletePickupRow(${id})">刪除</button>
+        </div>
+      </td>
+    </tr>`;
+}
+
+async function setPickupStatus(id, status) {
+  await fetch(`/api/admin/pickups/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  const dateFilter = document.getElementById("pickup-date-filter")?.value;
+  loadPickupList(dateFilter || undefined);
+}
+window.setPickupStatus = setPickupStatus;
+
+async function deletePickupRow(id) {
+  if (!confirm("確定刪除這筆預約？此動作無法復原。")) return;
+  await fetch(`/api/admin/pickups/${id}`, { method: "DELETE" });
+  const dateFilter = document.getElementById("pickup-date-filter")?.value;
+  loadPickupList(dateFilter || undefined);
+}
+window.deletePickupRow = deletePickupRow;
+window.loadPickupList = loadPickupList;
+
+// ===== render =====
+
+function render() {
+  if (currentTab === "conversations") renderConversations();
+  else if (currentTab === "escalations") renderEscalations();
+  else if (currentTab === "stats") renderStats();
+  else if (currentTab === "pickups") renderPickups();
+  else if (currentTab === "knowledge") renderKnowledge();
+}
+
+render();
+
+// ── 轉接通知輪詢（每 30 秒）──────────────────────────
+var prevEscCount = -1;
+
+async function pollEscalations() {
+  try {
+    var data = await api("/api/admin/escalations");
+    var count = data.count;
+
+    var badge = document.getElementById("esc-badge");
+    if (badge) {
+      badge.textContent = count;
+      badge.style.display = count > 0 ? "inline-flex" : "none";
+    }
+    document.title = count > 0
+      ? "(" + count + ") Hakuba Bot · 後台"
+      : "Hakuba Bot · 後台";
+
+    if (prevEscCount >= 0 && count > prevEscCount) {
+      playEscAlert();
+    }
+    prevEscCount = count;
+  } catch (e) {}
+}
+
+function playEscAlert() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.18].forEach(function (delay) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.35, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.3);
+    });
+  } catch (e) {}
+}
+
+pollEscalations();
+setInterval(pollEscalations, 30000);
+</script>
+</body>
+</html>

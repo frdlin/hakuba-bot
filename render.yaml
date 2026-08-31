@@ -1,0 +1,44 @@
+# Render 部署設定 (https://render.com/docs/yaml-spec)
+services:
+  - type: web
+    name: hakuba-bot
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24
+      # 其他敏感變數請在 Render dashboard 手動填入,不要寫在這裡
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_BUSINESS_ACCOUNT_ID
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: KNOWLEDGE_SOURCE
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: RATE_LIMIT_PER_HOUR
+        value: "30"
+      - key: MANAGER_WHATSAPP
+        sync: false

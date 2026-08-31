@@ -1,0 +1,33 @@
+{
+  "name": "hakuba-bot",
+  "version": "0.1.0",
+  "description": "Multi-channel AI concierge bot for The 1/3rd Hakuba villa",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/index.js",
+    "start": "node --env-file=.env src/index.js",
+    "notion:upload": "node --env-file=.env scripts/upload-to-notion.js",
+    "notion:update": "node --env-file=.env scripts/update-notion.js"
+  },
+  "keywords": [
+    "chatbot",
+    "whatsapp",
+    "line",
+    "claude",
+    "hakuba"
+  ],
+  "author": "fredlin@1-3rd.com",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@notionhq/client": "^5.20.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "@tryfabric/martian": "^1.2.4",
+    "csv-parse": "^5.5.0"
+  }
+}

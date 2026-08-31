@@ -1,0 +1,31 @@
+# 機密：API Key、密碼，永遠不上傳
+.env
+.env.local
+.env.*.local
+
+# Node.js 套件（很大、不需要上傳，別人 npm install 自己會下載）
+node_modules/
+
+# macOS 系統垃圾檔
+.DS_Store
+
+# 編輯器設定
+.vscode/
+.idea/
+*.swp
+
+# 日誌
+*.log
+logs/
+
+# 建置產物
+dist/
+build/
+.next/
+.cache/
+
+# 測試覆蓋率報告
+coverage/
+
+# 內部手冊，不進 git（正本同步在 Notion）
+docs-private/
