@@ -1,19 +1,20 @@
 # Hakuba Bot — Multi-Channel AI Concierge
 
-An AI concierge for [The 1/3rd Hakuba](https://1-3rd.com/), a villa rental in Hakuba, Nagano. It answers guest enquiries in Chinese, English, and Japanese across WhatsApp, LINE, and an embedded web widget, takes airport pickup bookings, and hands off to a human when it should.
+An AI concierge for [The 1/3rd Hakuba](https://1-3rd.com/), a villa rental in Hakuba, Nagano. It answers guest enquiries in Chinese, English, and Japanese on LINE and through an embedded web widget, takes airport pickup bookings, and hands off to a human when it should. A WhatsApp Cloud API adapter is also built and has been tested on Meta's sandbox number; the production number is pending Meta's business verification.
 
 Built and deployed solo — architecture, backend, admin panel, and knowledge base pipeline.
 
 ## Why
 
-Guests arrive from Taiwan, Japan, and English-speaking countries, and they ask the same forty questions at all hours across three different messaging apps. Answering manually across time zones did not scale, and a scripted FAQ bot could not handle *"we land at Narita at 6pm on the 14th, can someone pick us up?"* — which is a question and a booking request at the same time.
+Guests arrive from Taiwan, Japan, and English-speaking countries, and they ask the same forty questions at all hours across several messaging apps. Answering manually across time zones did not scale, and a scripted FAQ bot could not handle *"we land at Narita at 6pm on the 14th, can someone pick us up?"* — which is a question and a booking request at the same time.
 
 ## Stack
 
 - **Node.js 20** (ESM, no framework)
 - **Anthropic Claude API** — conversation and intent handling
 - **Supabase / PostgreSQL** — conversations, FAQs, bookings
-- **WhatsApp Cloud API** + **LINE Messaging API** + custom web widget
+- **LINE Messaging API** + custom web widget (live)
+- **WhatsApp Cloud API** (adapter built, sandbox-tested; production number pending)
 - **Notion API** — knowledge base authoring and sync
 - **Render** — hosting (`render.yaml`)
 
@@ -26,7 +27,7 @@ src/
 ├── system-prompt.js      # Persona, guardrails, language handling
 ├── knowledge.js          # Knowledge base retrieval
 ├── channels/
-│   ├── whatsapp.js       # WhatsApp Cloud API adapter
+│   ├── whatsapp.js       # WhatsApp Cloud API adapter (sandbox-tested)
 │   └── line.js           # LINE Messaging API adapter
 ├── pickupBooking.js      # Airport pickup booking flow
 ├── availability.js       # Slot availability logic
